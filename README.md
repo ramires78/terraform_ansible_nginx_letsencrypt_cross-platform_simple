@@ -21,8 +21,12 @@ Rollen ermöglichen es Ihnen, aus kleineren Teilen für verschiedene Situationen
 
 ```
 
+```shell
+     
      ansible-playbook -i ./ansible/inventories/webservers/hosts.yml ./ansible/nginx.yml --list-task  
-
+     
+```
+  
   play #1 (all): all    TAGS: []  
     tasks:  
       nginx : install Nginx und Letsencrypt on Ubuntu   TAGS: [web_install, webservers_ubuntu]  
