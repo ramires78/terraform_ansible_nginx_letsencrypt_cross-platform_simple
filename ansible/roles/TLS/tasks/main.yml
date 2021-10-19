@@ -1,0 +1,76 @@
+  - name: take cert from letsencrypt on ubuntu
+    shell:
+      cmd: /usr/bin/letsencrypt certonly --webroot -d {{ tls_vhostnames.0 }} -d www.{{ tls_vhostnames.0 }} -w /opt/www/{{ tls_dir_names }} -m {{ letsencrypt_renew_email }} --agree-tos 
+    when:  
+      ansible_os_family == "Debian" 
+    tags:
+      - letsencrypt_cert_ubuntu
+    notify: 
+      - reload nginx    
+
+  - name: take cert from certbot on centos
+    shell:
+      cmd: /usr/bin/certbot certonly --webroot -d {{ tls_vhostnames.1 }} -d www.{{ tls_vhostnames.1 }} -w /opt/www/{{ tls_dir_names }} -m {{ letsencrypt_renew_email }} --agree-tos 
+    when:  
+      ansible_os_family == "RedHat" 
+    tags:
+      - certbot_cert_centos
+    notify: 
+      - reload nginx        
+
+  - name: Add letsencrypt cronjob for cert renewal on ubuntu
+    cron:
+      name: letsencrypt_renewal
+      special_time: weekly
+      job: /usr/bin/letsencrypt --renew-by-default certonly -n --webroot -w /opt/www/{{ tls_dir_names }}  -m {{ letsencrypt_renew_email }} --agree-tos -d {{ tls_vhostnames.0 }} -d www.{{ tls_vhostnames.0 }} && /etc/init.d/nginx reload
+    when:  
+      ansible_os_family == "Debian" 
+    tags:
+      - cron_cert_ubuntu 
+
+  - name: Add certbot cronjob for cert renewal on centos
+    cron:
+      name: certbot_renewal
+      special_time: weekly
+      job: /usr/bin/certbot --renew-by-default certonly -n --webroot -w /opt/www/{{ tls_dir_names }}  -m {{ letsencrypt_renew_email }} --agree-tos -d {{ tls_vhostnames.1 }} -d www.{{ tls_vhostnames.1 }} && systemctl reload nginx
+    when:  
+      ansible_os_family == "RedHat" 
+    tags:
+      - cron_cert_centos  
+
+  - name: Aktualisieren der Diffie-Hellman-Parameter
+    shell:
+      cmd: "openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048"
+    tags:
+      hellman                    
+
+  - name: copy the new 443 nginx vhotsts config file on ubuntu
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: "{{ item.mode }}" 
+    with_items:
+      - "{{ virtualconf_ubuntu }}"
+    when:  
+      ansible_os_family == "Debian"    
+    tags:
+      - new_host_ubuntu
+    notify: 
+      - reload nginx   
+
+  - name: copy the new 443 nginx vhotsts config file on centos
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: "{{ item.mode }}" 
+    with_items:
+      - "{{ virtualconf_redhat }}"
+    when:  
+      ansible_os_family == "RedHat"    
+    tags:
+      - new_host_centos
+    notify: 
+      - reload nginx 
+
+
+      

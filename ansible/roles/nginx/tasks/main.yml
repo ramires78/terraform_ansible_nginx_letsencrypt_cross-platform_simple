@@ -1,0 +1,60 @@
+  - name: install Nginx und Letsencrypt on Ubuntu
+    apt:
+      name    : "{{ item.name }}"
+      state   : "{{ item.state }}"
+    with_items:
+      - {name: "nginx", state: "present"}
+      - {name: "letsencrypt", state: "latest"}
+      - {name: "mc", state: "latest"}   
+    when:
+      ansible_os_family == "Debian"  
+    tags:
+      webservers_ubuntu 
+    notify: 
+      - start nginx  
+
+  - name: install Nginx, EPEL, setrubleshoot und Letsencrypt on centos
+    yum:
+      name    : "{{ item.name }}"
+      state   : "{{ item.state }}"
+    with_items:
+      - {name: "epel-release", state: "present"}
+      - {name: "setroubleshoot", state: "present"}
+      - {name: "nginx", state: "present"} 
+      - {name: "certbot", state: "present"}             
+      - {name: "vim", state: "latest"}  
+      - {name: "mc", state: "latest"}       
+    when:
+      ansible_os_family == "RedHat"  
+    tags:
+      webservers_centos
+    notify: 
+      - start nginx            
+      
+  - name: copy the nginx config file on ubuntu
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: "{{ item.mode }}" 
+    with_items:
+      - "{{ virtualconf_ubuntu }}"
+    when:
+      ansible_os_family == "Debian"        
+    tags:
+      - nginx_conf_ubuntu 
+    notify: 
+      - reload nginx        
+
+  - name: copy the nginx config file on centos
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: "{{ item.mode }}" 
+    with_items:
+      - "{{ virtualconf_centos }}"
+    when:
+      ansible_os_family == "RedHat"        
+    tags:
+      - nginx_conf_centos 
+    notify: 
+      - reload nginx          

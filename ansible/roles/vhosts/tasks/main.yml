@@ -1,0 +1,93 @@
+  - name: add folder for item and sertifications virtual hosts on ubuntu
+    file:
+      path: /opt/www/{{ item }}
+      state: directory
+      mode: '0755'
+    with_items: "{{ dir_names_ubuntu }}"
+    when:
+      ansible_os_family == "Debian"   
+    tags:
+      - add_opt_folders_ubuntu
+
+  - name: add folder for item and sertifications virtual hosts on centos
+    file:
+      path: /opt/www/{{ item }}
+      state: directory
+      mode: '0755'
+    with_items: "{{ dir_names_centos }}"
+    when:
+      ansible_os_family == "RedHat" 
+    tags:
+      - add_opt_folders_centos       
+
+  - name: Remove default nginx config on ubuntu
+    file: 
+      name: /etc/nginx/sites-enabled/default
+      state: absent
+    when:
+      ansible_os_family == "Debian"            
+    tags:
+      - del_default_ubuntu   
+    notify: 
+      - reload nginx
+
+  - name: Remove default nginx config on centos
+    file: 
+      name: /etc/nginx/conf.d/default.conf      
+      state: absent
+    when:
+      ansible_os_family == "RedHat"      
+    tags:
+      - del_default_centos  
+    notify: 
+      - reload nginx                    
+
+  - name: copy the nginx vhotsts config file and the content of the web site on ubuntu
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: "{{ item.mode }}" 
+    with_items:
+      - "{{ virtualconf_ubuntu }}"
+    when:
+      ansible_os_family == "Debian"     
+    tags:
+      - erste_templates_ubuntu
+    notify: 
+      - reload nginx    
+
+  - name: copy the nginx vhotsts config file and the content of the web site on centos
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: "{{ item.mode }}" 
+    with_items:
+      - "{{ virtualconf_centos }}"
+    when:
+      ansible_os_family == "RedHat"     
+    tags:
+      - erste_templates_centos
+    notify: 
+      - reload nginx      
+
+  - name: Check NGINX configs on ubuntu
+    shell: 
+      cmd: "/usr/sbin/nginx -t"
+    when:
+      ansible_os_family == "Debian"      
+    tags:
+      - check_nginx_ubuntu
+
+  - name: Check NGINX configs und set SELinux on centos
+    shell:
+      cmd: "{{ item }}"
+    with_items:
+      - "/usr/sbin/nginx -t"
+      - "/usr/sbin/setenforce Permissive"
+    when:
+      ansible_os_family == "RedHat"      
+    tags:
+      virtualhost        
+
+  - name: Flush handlers
+    meta: flush_handlers     
